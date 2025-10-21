@@ -1,13 +1,31 @@
 import enum
 import pickle
 
+
+class _NumpyCompatUnpickler(pickle.Unpickler):
+    """Unpickler that maps deprecated NumPy module paths.
+
+    NumPy 2.0 renamed ``numpy._core`` to ``numpy.core``.  Motion pickle files
+    generated with NumPy 2.0+ therefore reference ``numpy._core`` modules, which
+    NumPy 1.x cannot import.  By rewriting the module path we can load those
+    files without requiring NumPy 2.x at runtime.
+    """
+
+    _LEGACY_PREFIX = "numpy._core"
+    _TARGET_PREFIX = "numpy.core"
+
+    def find_class(self, module, name):
+        if module.startswith(self._LEGACY_PREFIX):
+            module = module.replace(self._LEGACY_PREFIX, self._TARGET_PREFIX, 1)
+        return super().find_class(module, name)
+
 class LoopMode(enum.Enum):
     CLAMP = 0
     WRAP = 1
 
 def load_motion(file):
     with open(file, "rb") as filestream:
-        in_dict = pickle.load(filestream)
+        in_dict = _NumpyCompatUnpickler(filestream).load()
 
         loop_mode_val = in_dict["loop_mode"]
         fps = in_dict["fps"]

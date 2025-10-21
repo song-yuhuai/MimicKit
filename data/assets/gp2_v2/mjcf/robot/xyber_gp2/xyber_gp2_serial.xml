@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <mujoco model="GP02">
-  <compiler angle="radian" eulerseq="zyx" meshdir="../meshes" autolimits="true" />
+  <compiler angle="radian" eulerseq="xyz" meshdir="../meshes" autolimits="true" />
   <option timestep="0.001" />
   <visual>
     <global azimuth="150" elevation="-20" />

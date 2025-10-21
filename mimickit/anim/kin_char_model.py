@@ -415,17 +415,25 @@ class KinCharModel():
         return dof_idx
 
     def _parse_default_joint_type(self, xml_node):
-        default_data = xml_node.find("default")
-        default_data = default_data.findall("default")
+        default_root = xml_node.find("default")
 
         joint_type_str = "hinge"
+        
+        if (default_root is None):
+            return joint_type_str
+
+        joint_data = default_root.find("joint")
+        if (joint_data is not None):
+            joint_type_str = joint_data.attrib.get("type", joint_type_str)
+
+        default_data = default_root.findall("default")
 
         for data in default_data:
             class_data = data.attrib.get("class")
             if (class_data == "body"):
                 joint_data = data.find("joint")
                 if (joint_data is not None):
-                    joint_type_str = joint_data.attrib.get("type")
+                    jjoint_type_str = joint_data.attrib.get("type", joint_type_str)
                     break
 
         return joint_type_str
