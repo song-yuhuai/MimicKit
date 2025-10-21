@@ -173,18 +173,38 @@ class PPOAgent(base_agent.BaseAgent):
         batch_size = self._batch_size * num_envs
         num_batches = int(np.ceil(float(num_samples) / batch_size))
         train_info = dict()
+        last_loss_info = dict()
+        applied_updates = 0
+        skipped_updates = 0
 
         for i in range(self._update_epochs):
             for b in range(num_batches):
                 batch = self._exp_buffer.sample(batch_size)
                 loss_info = self._compute_loss(batch)
-                loss = loss_info["loss"]
-                self._optimizer.step(loss)
+                sanitized_loss_info = torch_util.sanitize_info_dict(loss_info)
+                if (len(sanitized_loss_info) > 0):
+                    last_loss_info = sanitized_loss_info
 
-                torch_util.add_torch_dict(loss_info, train_info)
-        
-        num_steps = self._update_epochs * num_batches
-        torch_util.scale_torch_dict(1.0 / num_steps, train_info)
+                loss = loss_info["loss"]
+                if (not torch_util.is_finite_tensor(loss.detach())):
+                    skipped_updates += 1
+                    continue
+
+                stepped = self._optimizer.step(loss)
+                if (not stepped):
+                    skipped_updates += 1
+                    continue
+
+                torch_util.add_torch_dict(sanitized_loss_info, train_info)
+                applied_updates += 1
+
+        if (applied_updates > 0):
+            torch_util.scale_torch_dict(1.0 / applied_updates, train_info)
+        elif (len(last_loss_info) > 0):
+            train_info = dict(last_loss_info)
+
+        train_info["applied_updates"] = torch.tensor(float(applied_updates), device=self._device, dtype=torch.float32)
+        train_info["skipped_updates"] = torch.tensor(float(skipped_updates), device=self._device, dtype=torch.float32)
 
         return train_info
     
@@ -226,6 +246,27 @@ class PPOAgent(base_agent.BaseAgent):
 
         # loss should only be computed using samples with random actions
         rand_action_mask = (rand_action_mask == 1.0)
+        if (not torch.any(rand_action_mask)):
+            zero = torch.zeros([], device=norm_obs.device, dtype=norm_obs.dtype)
+            one = torch.ones([], device=norm_obs.device, dtype=norm_obs.dtype)
+
+            info = {
+                "actor_loss": zero,
+                "clip_frac": zero,
+                "imp_ratio": one
+            }
+
+            if (self._action_bound_weight != 0):
+                info["action_bound_loss"] = zero
+
+            if (self._action_entropy_weight != 0):
+                info["action_entropy"] = zero
+
+            if (self._action_reg_weight != 0):
+                info["action_reg_loss"] = zero
+
+            return info
+
         norm_obs = norm_obs[rand_action_mask]
         norm_a = norm_a[rand_action_mask]
         old_a_logp = old_a_logp[rand_action_mask]
@@ -234,7 +275,9 @@ class PPOAgent(base_agent.BaseAgent):
         a_dist = self._model.eval_actor(norm_obs)
         a_logp = a_dist.log_prob(norm_a)
 
-        a_ratio = torch.exp(a_logp - old_a_logp)
+        logp_diff = a_logp - old_a_logp
+        logp_diff = torch.clamp(logp_diff, -20.0, 20.0)
+        a_ratio = torch.exp(logp_diff)
         actor_loss0 = adv * a_ratio
         actor_loss1 = adv * torch.clamp(a_ratio, 1.0 - self._ppo_clip_ratio, 1.0 + self._ppo_clip_ratio)
         actor_loss = torch.minimum(actor_loss0, actor_loss1)

@@ -93,11 +93,12 @@ class AMPAgent(ppo_agent.PPOAgent):
         disc_obs = self._exp_buffer.get_data_flat("disc_obs")
         norm_disc_obs = self._disc_obs_norm.normalize(disc_obs)
         disc_r = self._calc_disc_rewards(norm_disc_obs)
+        disc_r = torch.nan_to_num(disc_r, nan=0.0, posinf=0.0, neginf=0.0)
 
         r = self._task_reward_weight * task_r + self._disc_reward_weight * disc_r
         self._exp_buffer.set_data_flat("reward", r)
         
-        disc_reward_std, disc_reward_mean = torch.std_mean(disc_r)
+        disc_reward_std, disc_reward_mean = torch.std_mean(disc_r, unbiased=False)
         info = {
             "disc_reward_mean": disc_reward_mean,
             "disc_reward_std": disc_reward_std
@@ -130,6 +131,8 @@ class AMPAgent(ppo_agent.PPOAgent):
         disc_demo_logit = self._model.eval_disc(norm_disc_obs_demo)
         disc_agent_logit = disc_agent_logit.squeeze(-1)
         disc_demo_logit = disc_demo_logit.squeeze(-1)
+        disc_agent_logit = torch.nan_to_num(disc_agent_logit, nan=0.0, posinf=0.0, neginf=0.0)
+        disc_demo_logit = torch.nan_to_num(disc_demo_logit, nan=0.0, posinf=0.0, neginf=0.0)
 
         disc_loss_agent = self._disc_loss_neg(disc_agent_logit)
         disc_loss_demo = self._disc_loss_pos(disc_demo_logit)
@@ -139,14 +142,19 @@ class AMPAgent(ppo_agent.PPOAgent):
         disc_demo_grad = torch.autograd.grad(disc_demo_logit, norm_disc_obs_demo, grad_outputs=torch.ones_like(disc_demo_logit),
                                              create_graph=True, retain_graph=True, only_inputs=True)
         disc_demo_grad = disc_demo_grad[0]
+        disc_demo_grad = torch.nan_to_num(disc_demo_grad, nan=0.0, posinf=0.0, neginf=0.0)
         disc_demo_grad = torch.sum(torch.square(disc_demo_grad), dim=-1)
+        disc_demo_grad = torch.nan_to_num(disc_demo_grad, nan=0.0, posinf=0.0, neginf=0.0)
         disc_grad_penalty = torch.mean(disc_demo_grad)
+        disc_grad_penalty = torch.nan_to_num(disc_grad_penalty, nan=0.0, posinf=0.0, neginf=0.0)
         disc_loss += self._disc_grad_penalty * disc_grad_penalty
 
         disc_agent_acc, disc_demo_acc = self._compute_disc_acc(disc_agent_logit, disc_demo_logit)
 
         disc_agent_logit_mean = torch.mean(disc_agent_logit)
         disc_demo_logit_mean = torch.mean(disc_demo_logit)
+        disc_agent_logit_mean = torch.nan_to_num(disc_agent_logit_mean, nan=0.0, posinf=0.0, neginf=0.0)
+        disc_demo_logit_mean = torch.nan_to_num(disc_demo_logit_mean, nan=0.0, posinf=0.0, neginf=0.0)
 
         disc_info = {
             "disc_loss": disc_loss,
@@ -160,6 +168,7 @@ class AMPAgent(ppo_agent.PPOAgent):
         # logit reg
         if (self._disc_logit_reg != 0):
             logit_weights = self._model.get_disc_logit_weights()
+            logit_weights = torch.nan_to_num(logit_weights, nan=0.0, posinf=0.0, neginf=0.0)
             disc_logit_loss = torch.sum(torch.square(logit_weights))
             disc_loss += self._disc_logit_reg * disc_logit_loss
             disc_info["disc_logit_loss"] = disc_logit_loss.detach()
@@ -168,6 +177,7 @@ class AMPAgent(ppo_agent.PPOAgent):
         if (self._disc_weight_decay != 0):
             disc_weights = self._model.get_disc_weights()
             disc_weights = torch.cat(disc_weights, dim=-1)
+            disc_weights = torch.nan_to_num(disc_weights, nan=0.0, posinf=0.0, neginf=0.0)
             disc_weight_decay = torch.sum(torch.square(disc_weights))
             disc_loss += self._disc_weight_decay * disc_weight_decay
             disc_info["disc_weight_decay"] = disc_weight_decay.detach()
@@ -196,7 +206,11 @@ class AMPAgent(ppo_agent.PPOAgent):
             disc_inputs = {"disc_obs": norm_disc_obs}
             disc_logits = torch_util.eval_minibatch(self._model.eval_disc, disc_inputs, self._disc_eval_batch_size)
             disc_logits = disc_logits.squeeze(-1)
-            prob = 1 / (1 + torch.exp(-disc_logits)) 
-            disc_r = -torch.log(torch.maximum(1 - prob, torch.tensor(0.0001, device=self._device)))
+            disc_logits = torch.nan_to_num(disc_logits, nan=0.0, posinf=0.0, neginf=0.0)
+            prob = torch.sigmoid(disc_logits)
+            prob = torch.nan_to_num(prob, nan=0.0, posinf=1.0, neginf=0.0)
+            safe_margin = torch.clamp_min(1 - prob, 1e-4)
+            disc_r = -torch.log(safe_margin)
+            disc_r = torch.nan_to_num(disc_r, nan=0.0, posinf=0.0, neginf=0.0)
             disc_r *= self._disc_reward_scale
         return disc_r

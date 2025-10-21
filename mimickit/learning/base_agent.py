@@ -447,6 +447,15 @@ class BaseAgent(torch.nn.Module):
     def _output_train_model(self, iter, out_model_file, int_output_dir):
         self.save(out_model_file)
 
+        if (iter > 0 and iter % 10 == 0):
+            out_dir = os.path.dirname(out_model_file)
+            base_name = os.path.basename(out_model_file)
+            base_name, ext = os.path.splitext(base_name)
+            if (ext == ""):
+                ext = ".pt"
+            iter_model_file = os.path.join(out_dir, "{:s}_{:d}{:s}".format(base_name, iter, ext))
+            self.save(iter_model_file)
+
         if (int_output_dir != ""):
             int_model_file = os.path.join(int_output_dir, "model_{:010d}.pt".format(iter))
             self.save(int_model_file)

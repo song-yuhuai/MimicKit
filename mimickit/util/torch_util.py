@@ -396,7 +396,24 @@ def add_torch_dict(in_dict, out_dict):
         else:
             out_dict[k] = v
     return
-        
+
+def is_finite_tensor(x):
+    assert torch.is_tensor(x)
+    return bool(torch.isfinite(x).all())
+
+def sanitize_info_dict(info):
+    clean_info = dict()
+
+    for k, v in info.items():
+        if torch.is_tensor(v):
+            clean_info[k] = torch.nan_to_num(v.detach(), nan=0.0, posinf=0.0, neginf=0.0)
+        else:
+            if isinstance(v, float) and (not np.isfinite(v)):
+                v = 0.0
+            clean_info[k] = v
+
+    return clean_info
+            
 def scale_torch_dict(scale, out_dict):
     for k in out_dict.keys():
         out_dict[k] *= scale
