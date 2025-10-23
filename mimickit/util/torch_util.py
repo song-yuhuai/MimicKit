@@ -406,7 +406,7 @@ def sanitize_info_dict(info):
 
     for k, v in info.items():
         if torch.is_tensor(v):
-            clean_info[k] = torch.nan_to_num(v.detach(), nan=0.0, posinf=0.0, neginf=0.0)
+            clean_info[k] = torch.nan_to_num(v.detach(), nan=5.0, posinf=0.0, neginf=0.0)
         else:
             if isinstance(v, float) and (not np.isfinite(v)):
                 v = 0.0

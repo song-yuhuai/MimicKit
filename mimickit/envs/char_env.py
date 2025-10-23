@@ -382,7 +382,13 @@ class CharEnv(sim_env.SimEnv):
             dof_prop = self._engine.get_actor_dof_properties(0, char_id)
             dof_low = dof_prop["lower"]
             dof_high = dof_prop["upper"]
+
+            print("[gp2] char_id:", char_id)
+            print("[gp2] dof_low  shape:", dof_low.shape, "min/max:", float(dof_low.min()), float(dof_low.max()))
+            print("[gp2] dof_high shape:", dof_high.shape, "min/max:", float(dof_high.min()), float(dof_high.max()))
+            print("[gp2] any_equal:", bool((dof_low == dof_high).all()))
             low, high = self._build_action_bounds_pos(dof_low, dof_high)
+            print("[gp2] action bounds min/max:", float(low.min()), float(low.max()), float(high.min()), float(high.max()))
 
         else:
             assert(False), "Unsupported control mode: {}".format(control_mode)

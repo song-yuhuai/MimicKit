@@ -158,6 +158,15 @@ class BaseAgent(torch.nn.Module):
     
     def _build_action_normalizer(self):
         a_space = self._env.get_action_space()
+        import numpy as np
+        print("[act space] type:", type(a_space), "shape:", getattr(a_space, "shape", None))
+        if hasattr(a_space, "low"):
+            print("low  min/max:", float(np.min(a_space.low)), float(np.max(a_space.low)))
+        if hasattr(a_space, "high"):
+            print("high min/max:", float(np.min(a_space.high)), float(np.max(a_space.high)))
+        print("all_equal? :", hasattr(a_space, "low") and hasattr(a_space, "high") and np.allclose(a_space.low, a_space.high))
+        print("first few low:", getattr(a_space, "low", None)[:10] if hasattr(a_space, "low") else None)
+        print("first few high:", getattr(a_space, "high", None)[:10] if hasattr(a_space, "high") else None)
         a_dtype = torch_util.numpy_dtype_to_torch(a_space.dtype)
 
         if (isinstance(a_space, spaces.Box)):

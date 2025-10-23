@@ -9,7 +9,7 @@ from functools import reduce
 import tools.util.plot_util as PlotUtil
 
 files = [
-    "output/log.txt",
+    "deepmimic_gp2_walk_256/log.txt",
 ]
 
 draw_band = True
