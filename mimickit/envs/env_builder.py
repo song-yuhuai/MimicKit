@@ -41,6 +41,9 @@ def build_env(env_file, engine_file, num_envs, device, visualize):
     elif (env_name == "static_objects"):
         import envs.static_objects_env as static_objects_env
         env = static_objects_env.StaticObjectsEnv(env_config=env_config, engine_config=engine_config, num_envs=num_envs, device=device, visualize=visualize)
+    elif (env_name == "static_objects_amp"):
+        import envs.static_objects_amp_env as static_objects_amp_env
+        env = static_objects_amp_env.StaticObjectsAMPEnv(env_config=env_config, engine_config=engine_config, num_envs=num_envs, device=device, visualize=visualize)
     else:
         assert(False), "Unsupported env: {}".format(env_name)
 
