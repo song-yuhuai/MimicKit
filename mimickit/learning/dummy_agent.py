@@ -16,6 +16,7 @@ class DummyAgent(base_agent.BaseAgent):
     def _load_params(self, config):
         self._discount = 0.99
         self._iters_per_output = 100
+        self._checkpoint_interval = 1000
         self._normalizer_samples = 10000
         self._test_episodes = 10
         self._steps_per_iter = 32

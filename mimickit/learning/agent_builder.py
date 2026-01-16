@@ -2,11 +2,13 @@ import yaml
 
 from util.logger import Logger
 
-def build_agent(agent_file, env, device):
+def build_agent(agent_file, env, device, config_overrides=None):
     if (agent_file is None or agent_file == ""):
         agent_name = "Dummy"
     else:
         agent_config = load_agent_file(agent_file)
+        if (config_overrides):
+            agent_config.update(config_overrides)
         agent_name = agent_config["agent_name"]
 
     Logger.print("Building {} agent".format(agent_name))

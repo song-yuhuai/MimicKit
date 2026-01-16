@@ -85,6 +85,8 @@ class BaseAgent(torch.nn.Module):
                 self._train_return_tracker.reset()
                 self._curr_obs, self._curr_info = self._reset_envs()
             
+            self._output_checkpoint(self._iter, out_model_file)
+
             self._iter += 1
 
         return
@@ -146,6 +148,7 @@ class BaseAgent(torch.nn.Module):
     def _load_params(self, config):
         self._discount = config["discount"]
         self._iters_per_output = config["iters_per_output"]
+        self._checkpoint_interval = config.get("checkpoint_interval", 1000)
         self._normalizer_samples = config.get("normalizer_samples", np.inf)
         self._test_episodes = config["test_episodes"]
         
@@ -448,3 +451,32 @@ class BaseAgent(torch.nn.Module):
             int_model_file = os.path.join(int_out_dir, "model_{:010d}.pt".format(iter))
             self.save(int_model_file)
         return
+
+    def _output_checkpoint(self, iter, out_model_file):
+        if (not self._should_save_checkpoint(iter)):
+            return
+
+        numbered_model_file = self._build_numbered_model_path(out_model_file, iter)
+        self.save(numbered_model_file)
+
+        if (mp_util.is_root_proc()):
+            checkpoint_file = os.path.join(os.path.dirname(out_model_file), "checkpoint_{:d}.pt".format(iter))
+            optimizer_state_dict = None
+            if (self._optimizer is not None):
+                optimizer_state_dict = self._optimizer.state_dict()
+            checkpoint = {
+                "iter": iter,
+                "model_state_dict": self.state_dict(),
+                "optimizer_state_dict": optimizer_state_dict
+            }
+            torch.save(checkpoint, checkpoint_file)
+        return
+
+    def _should_save_checkpoint(self, iter):
+        return self._checkpoint_interval > 0 and iter > 0 and (iter % self._checkpoint_interval == 0)
+
+    def _build_numbered_model_path(self, out_model_file, iter):
+        base_name = os.path.basename(out_model_file)
+        stem, ext = os.path.splitext(base_name)
+        numbered_name = "{:s}_{:d}{:s}".format(stem, iter, ext)
+        return os.path.join(os.path.dirname(out_model_file), numbered_name)

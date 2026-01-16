@@ -38,7 +38,11 @@ def build_env(args, num_envs, device, visualize):
 
 def build_agent(args, env, device):
     agent_file = args.parse_string("agent_config")
-    agent = agent_builder.build_agent(agent_file, env, device)
+    config_overrides = {}
+    if (args.has_key("checkpoint_interval")):
+        config_overrides["checkpoint_interval"] = args.parse_int("checkpoint_interval", 1000)
+
+    agent = agent_builder.build_agent(agent_file, env, device, config_overrides=config_overrides)
     return agent
 
 def train(agent, max_samples, out_dir, save_int_models, logger_type):

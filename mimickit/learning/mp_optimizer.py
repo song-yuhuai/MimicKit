@@ -35,6 +35,9 @@ class MPOptimizer():
         self._steps += 1
         return
 
+    def state_dict(self):
+        return self._optimizer.state_dict()
+
     def get_steps(self):
         return self._steps
 
