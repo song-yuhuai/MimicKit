@@ -23,6 +23,15 @@ enable_early_termination: True
 key_bodies: ["left_ankle_roll_link", "right_ankle_roll_link"]
 contact_bodies: ["left_knee_link", "left_ankle_pitch_link", "left_ankle_roll_link", "right_knee_link", "right_ankle_pitch_link", "right_ankle_roll_link", "left_elbow_link", "left_wrist_roll_link", "left_wrist_pitch_link", "left_wrist_yaw_link", "right_elbow_link", "right_wrist_roll_link", "right_wrist_pitch_link", "right_wrist_yaw_link"]
 
+foot_lift_termination:
+  enabled: False
+  foot_bodies: ["left_ankle_roll_link", "right_ankle_roll_link"]
+  grace_time: 0.5
+  height_thresh: 0.05
+  persist: True
+  require_until_end: True
+  apply_in_test: False
+
 motion_file: "data/motions/g1/g1_step_zfix_mimickit.pkl"
 objects: [{"pos":[-1.4, 0.3, 0.08], "file":"data/assets/objects/chassis_box.xml"}]
 
