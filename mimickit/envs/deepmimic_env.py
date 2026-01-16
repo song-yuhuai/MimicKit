@@ -514,6 +514,18 @@ class DeepMimicEnv(char_env.CharEnv):
         if (foot_lift_fail is not None):
             update_mask = torch.logical_and(foot_lift_fail, self._done_buf == base_env.DoneFlags.NULL.value)
             self._done_buf[update_mask] = base_env.DoneFlags.FAIL.value
+            num_envs = self.get_num_envs()
+            foot_lift_fail_count = int(update_mask.sum().item())
+            foot_lift_fail_frac = float(foot_lift_fail_count) / float(num_envs)
+            self._diagnostics["term/foot_lift_fail_count"] = foot_lift_fail_count
+            self._diagnostics["term/foot_lift_fail_frac"] = foot_lift_fail_frac
+            self._diagnostics["term/foot_lift_ever_ok_frac"] = float(self._foot_lift_ever_ok.float().mean().item())
+        else:
+            self._diagnostics["term/foot_lift_fail_count"] = 0
+            self._diagnostics["term/foot_lift_fail_frac"] = 0.0
+            self._diagnostics["term/foot_lift_ever_ok_frac"] = float(self._foot_lift_ever_ok.float().mean().item())
+
+
 
         if (foot_lift_fail is not None and self._foot_lift_term_log_interval > 0):
             self._foot_lift_term_step_count += 1

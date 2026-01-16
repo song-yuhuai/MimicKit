@@ -57,6 +57,7 @@ class TBLogger(logger.Logger):
                     val = entry.val
                     tag = self._key_tags[i]
                     self._writer.add_scalar(tag, val, step_val)
+            self._writer.flush()
         return
     
     def _add_collection(self, name, key):
