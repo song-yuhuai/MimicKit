@@ -40,18 +40,14 @@ class DeepMimicEnv(char_env.CharEnv):
         
         foot_lift_cfg = env_config.get("foot_lift_termination", {})
         self._foot_lift_term_enabled = foot_lift_cfg.get("enabled", False)
-        self._foot_lift_term_grace_time = foot_lift_cfg.get("grace_time", None)
-        self._foot_lift_term_grace_steps = foot_lift_cfg.get("grace_steps", None)
-        self._foot_lift_term_height_thresh = foot_lift_cfg.get("height_thresh", 0.05)
-        self._foot_lift_term_persist = foot_lift_cfg.get("persist", True)
-        self._foot_lift_term_require_until_end = foot_lift_cfg.get("require_until_end", True)
+        self._foot_lift_term_grace_time_1 = foot_lift_cfg.get("grace_time_1", 0.5)
+        self._foot_lift_term_height_thresh_1 = foot_lift_cfg.get("height_thresh_1", 0.05)
+        self._foot_lift_term_grace_time_2 = foot_lift_cfg.get("grace_time_2", 1.5)
+        self._foot_lift_term_height_thresh_2 = foot_lift_cfg.get("height_thresh_2", 0.05)
         self._foot_lift_term_apply_in_test = foot_lift_cfg.get("apply_in_test", False)
         self._foot_lift_term_log_interval = foot_lift_cfg.get("log_interval", 100)
         self._foot_lift_term_step_count = 0
         self._foot_lift_term_warned_no_bodies = False
-
-        if (self._foot_lift_term_grace_time is None and self._foot_lift_term_grace_steps is None):
-            self._foot_lift_term_grace_time = 0.5
 
         self._visualize_ref_char = env_config.get("visualize_ref_char", True)
         
@@ -106,15 +102,24 @@ class DeepMimicEnv(char_env.CharEnv):
         self._contact_body_ids = self._build_body_ids_tensor(contact_bodies)
 
         foot_lift_cfg = env_config.get("foot_lift_termination", {})
-        foot_bodies = foot_lift_cfg.get("foot_bodies", None)
-        if (foot_bodies is None):
-            foot_bodies = env_config.get("key_bodies", [])
-        if (len(foot_bodies) > 0):
-            self._foot_lift_body_ids = self._build_body_ids_tensor(foot_bodies)
-        else:
-            self._foot_lift_body_ids = torch.zeros(0, device=self._device, dtype=torch.long)
+        foot_bodies_left = foot_lift_cfg.get("foot_bodies_left", None)
+        foot_bodies_right = foot_lift_cfg.get("foot_bodies_right", None)
+        if (foot_bodies_left is None or foot_bodies_right is None):
+            key_bodies = env_config.get("key_bodies", [])
+            if (foot_bodies_left is None and len(key_bodies) > 0):
+                foot_bodies_left = [key_bodies[0]]
+            if (foot_bodies_right is None and len(key_bodies) > 1):
+                foot_bodies_right = [key_bodies[1]]
 
-        self._foot_lift_ever_ok = torch.zeros(num_envs, device=self._device, dtype=torch.bool)
+        if (foot_bodies_left is not None and len(foot_bodies_left) > 0):
+            self._foot_lift_body_ids_left = self._build_body_ids_tensor(foot_bodies_left)
+        else:
+            self._foot_lift_body_ids_left = torch.zeros(0, device=self._device, dtype=torch.long)
+
+        if (foot_bodies_right is not None and len(foot_bodies_right) > 0):
+            self._foot_lift_body_ids_right = self._build_body_ids_tensor(foot_bodies_right)
+        else:
+            self._foot_lift_body_ids_right = torch.zeros(0, device=self._device, dtype=torch.long)
 
         joint_err_w = env_config.get("joint_err_w", None)
         self._parse_joint_err_weights(joint_err_w)
@@ -210,9 +215,6 @@ class DeepMimicEnv(char_env.CharEnv):
 
     def _reset_envs(self, env_ids):
         super()._reset_envs(env_ids)
-
-        if (len(env_ids) > 0 and self._foot_lift_ever_ok is not None):
-            self._foot_lift_ever_ok[env_ids] = False
         return
 
     def _get_ref_char_id(self):
@@ -510,61 +512,67 @@ class DeepMimicEnv(char_env.CharEnv):
                                          motion_len=motion_len,
                                          motion_len_term=motion_len_term,
                                          track_root=track_root)
-        foot_lift_fail = self._compute_foot_lift_fail(body_pos)
-        if (foot_lift_fail is not None):
-            update_mask = torch.logical_and(foot_lift_fail, self._done_buf == base_env.DoneFlags.NULL.value)
+        foot_lift_data = self._compute_foot_lift_fail_2stage(body_pos)
+        if (foot_lift_data is not None):
+            left_stage_fail, both_stage_fail, left_height, right_height = foot_lift_data
+            update_mask_left = torch.logical_and(left_stage_fail, self._done_buf == base_env.DoneFlags.NULL.value)
+            update_mask_both = torch.logical_and(both_stage_fail, self._done_buf == base_env.DoneFlags.NULL.value)
+            update_mask = torch.logical_or(update_mask_left, update_mask_both)
             self._done_buf[update_mask] = base_env.DoneFlags.FAIL.value
+
             num_envs = self.get_num_envs()
-            foot_lift_fail_count = int(update_mask.sum().item())
-            foot_lift_fail_frac = float(foot_lift_fail_count) / float(num_envs)
-            self._diagnostics["term/foot_lift_fail_count"] = foot_lift_fail_count
-            self._diagnostics["term/foot_lift_fail_frac"] = foot_lift_fail_frac
-            self._diagnostics["term/foot_lift_ever_ok_frac"] = float(self._foot_lift_ever_ok.float().mean().item())
+            left_fail_count = int(update_mask_left.sum().item())
+            both_fail_count = int(update_mask_both.sum().item())
+            left_fail_frac = float(left_fail_count) / float(num_envs)
+            both_fail_frac = float(both_fail_count) / float(num_envs)
+            self._diagnostics["term/left_stage_fail_count"] = left_fail_count
+            self._diagnostics["term/left_stage_fail_frac"] = left_fail_frac
+            self._diagnostics["term/both_stage_fail_count"] = both_fail_count
+            self._diagnostics["term/both_stage_fail_frac"] = both_fail_frac
+            self._diagnostics["term/left_height_mean"] = float(left_height.mean().item())
+            self._diagnostics["term/right_height_mean"] = float(right_height.mean().item())
         else:
-            self._diagnostics["term/foot_lift_fail_count"] = 0
-            self._diagnostics["term/foot_lift_fail_frac"] = 0.0
-            self._diagnostics["term/foot_lift_ever_ok_frac"] = float(self._foot_lift_ever_ok.float().mean().item())
+            self._diagnostics["term/left_stage_fail_count"] = 0
+            self._diagnostics["term/left_stage_fail_frac"] = 0.0
+            self._diagnostics["term/both_stage_fail_count"] = 0
+            self._diagnostics["term/both_stage_fail_frac"] = 0.0
+            self._diagnostics["term/left_height_mean"] = 0.0
+            self._diagnostics["term/right_height_mean"] = 0.0
 
-
-
-        if (foot_lift_fail is not None and self._foot_lift_term_log_interval > 0):
+        if (foot_lift_data is not None and self._foot_lift_term_log_interval > 0):
             self._foot_lift_term_step_count += 1
             if (self._foot_lift_term_step_count % self._foot_lift_term_log_interval == 0):
-                num_failed = int(foot_lift_fail.sum().item())
+                num_failed = int(update_mask.sum().item())
                 Logger.print("Foot-lift terminations (this step): {:d}".format(num_failed))
         return
 
-    def _compute_foot_lift_fail(self, body_pos):
+    def _compute_foot_lift_fail_2stage(self, body_pos):
         if (not self._foot_lift_term_enabled):
             return None
 
         if (self._mode == base_env.EnvMode.TEST and not self._foot_lift_term_apply_in_test):
             return None
 
-        if (self._foot_lift_body_ids.numel() == 0):
+        if (self._foot_lift_body_ids_left.numel() == 0 or self._foot_lift_body_ids_right.numel() == 0):
             if (not self._foot_lift_term_warned_no_bodies):
                 Logger.print("Foot-lift termination enabled but no foot bodies configured; skipping.")
                 self._foot_lift_term_warned_no_bodies = True
             return None
 
-        if (self._foot_lift_term_grace_steps is not None):
-            grace_over = self._timestep_buf > int(self._foot_lift_term_grace_steps)
-        else:
-            grace_over = self._time_buf > float(self._foot_lift_term_grace_time)
+        grace_over_1 = self._time_buf > float(self._foot_lift_term_grace_time_1)
+        grace_over_2 = self._time_buf > float(self._foot_lift_term_grace_time_2)
 
-        foot_pos = body_pos[:, self._foot_lift_body_ids, 2]
-        max_foot_height = torch.max(foot_pos, dim=-1)[0]
-        lift_ok = max_foot_height > self._foot_lift_term_height_thresh
+        left_foot_pos = body_pos[:, self._foot_lift_body_ids_left, 2]
+        right_foot_pos = body_pos[:, self._foot_lift_body_ids_right, 2]
+        left_height = torch.max(left_foot_pos, dim=-1)[0]
+        right_height = torch.max(right_foot_pos, dim=-1)[0]
 
-        if (self._foot_lift_term_persist or self._foot_lift_term_require_until_end):
-            self._foot_lift_ever_ok |= lift_ok  # no grace gating here
-            dropped = self._foot_lift_ever_ok & grace_over & (~lift_ok)
-            never_lifted = grace_over & (~self._foot_lift_ever_ok)
-            foot_lift_fail = torch.logical_or(dropped, never_lifted)
-        else:
-            foot_lift_fail = torch.logical_and(grace_over, torch.logical_not(lift_ok))
-        # Prevent a stand-still local optimum by enforcing a sustained foot lift.
-        return foot_lift_fail
+        left_ok = left_height > self._foot_lift_term_height_thresh_1
+        both_ok = torch.minimum(left_height, right_height) > self._foot_lift_term_height_thresh_2
+
+        left_stage_fail = torch.logical_and(grace_over_1, torch.logical_not(left_ok))
+        both_stage_fail = torch.logical_and(grace_over_2, torch.logical_not(both_ok))
+        return left_stage_fail, both_stage_fail, left_height, right_height
 
     def _update_info(self, env_ids=None):
         super()._update_info(env_ids)

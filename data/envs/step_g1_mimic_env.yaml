@@ -6,15 +6,15 @@ camera_mode: "track"
 episode_length: 10.0 # seconds
 global_obs: True
 root_height_obs: True
-pose_termination: False
+pose_termination: True
 pose_termination_dist: 0.5 # m
-enable_phase_obs: True
+enable_phase_obs: False
 enable_tar_obs: True
 num_phase_encoding: 4
 tar_obs_steps: [1, 2, 3]
 rand_reset: False
 zero_center_action: True
-log_tracking_error: False
+log_tracking_error: True
 
 ref_char_offset: [0.0, 2.0, 0.0] # m
 init_pose: [0, 0, 0.8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1.57, 0, 0, 0, 0, 0, 0, 1.57, 0, 0, 0]
@@ -24,13 +24,14 @@ key_bodies: ["left_ankle_roll_link", "right_ankle_roll_link"]
 contact_bodies: ["left_knee_link", "left_ankle_pitch_link", "left_ankle_roll_link", "right_knee_link", "right_ankle_pitch_link", "right_ankle_roll_link", "left_elbow_link", "left_wrist_roll_link", "left_wrist_pitch_link", "left_wrist_yaw_link", "right_elbow_link", "right_wrist_roll_link", "right_wrist_pitch_link", "right_wrist_yaw_link"]
 
 foot_lift_termination:
-  enabled: True
+  enabled: False
   foot_bodies: ["left_ankle_roll_link", "right_ankle_roll_link"]
-  grace_time: 2.0
-  height_thresh: 0.14
-  persist: True
-  require_until_end: True
+  grace_time_1: 2.0
+  height_thresh_1: 0.14
+  grace_time_2: 3.2
+  height_thresh_2: 0.14
   apply_in_test: False
+  log_interval: 100
 
 motion_file: "data/motions/g1/g1_stepper_cut_hold_interp_mimickit.pkl"
 objects: [{"pos":[0.65, 0.3, 0.08], "file":"data/assets/objects/chassis_box.xml"}]
@@ -43,7 +44,7 @@ reward_root_pose_w: 0.15
 reward_root_vel_w: 0.1
 reward_key_pos_w: 0.5
 
-reward_pose_scale: 0.5
+reward_pose_scale: 5.0
 reward_vel_scale: 0.01
 reward_root_pose_scale: 5.0
 reward_root_vel_scale: 1.0
