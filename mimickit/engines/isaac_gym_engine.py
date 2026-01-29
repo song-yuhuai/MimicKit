@@ -10,6 +10,7 @@ import time
 
 import engines.engine as engine
 import util.torch_util as torch_util
+from util.logger import Logger
 
 def str_to_key_code(key_str):
     key_str = key_str.upper()
@@ -49,6 +50,9 @@ class IsaacGymEngine(engine.Engine):
         self._device = device
         self._num_envs = num_envs
         self._asset_cache = dict()
+        self._debug_object_colors = config.get("debug_object_colors", False)
+        self._object_color_overrides = config.get("object_color_overrides", {})
+        self._applied_color_overrides = set()
         
         self._gym = gymapi.acquire_gym()
         
@@ -191,6 +195,21 @@ class IsaacGymEngine(engine.Engine):
             num_bodies = self.get_obj_num_bodies(obj_id)
             for b in range(num_bodies):
                 self.set_body_color(env_id, obj_id, b, color)
+
+        override_color = self._get_color_override(name, asset_file)
+        if (override_color is not None):
+            self.set_actor_color(env_id, obj_id, override_color)
+            override_key = self._get_override_key(name, asset_file)
+            if (override_key not in self._applied_color_overrides):
+                self._applied_color_overrides.add(override_key)
+                Logger.print(f"Applied color override to {override_key}")
+
+        if (self._debug_object_colors):
+            body_names = self._gym.get_actor_rigid_body_names(env_ptr, obj_id)
+            Logger.print(
+                f"Spawned asset={asset_file} actor_name={name} actor_handle={obj_id} "
+                f"rigid_bodies={list(body_names)}"
+            )
 
         self._obj_types[env_id].append(obj_type)
 
@@ -444,6 +463,27 @@ class IsaacGymEngine(engine.Engine):
                                        gymapi.Vec3(color[0], color[1], color[2]))
         return
     
+    def set_actor_color(self, env_id, obj_id, color):
+        num_bodies = self.get_obj_num_bodies(obj_id)
+        for body_id in range(num_bodies):
+            self.set_body_color(env_id, obj_id, body_id, color)
+        return
+
+    def _get_override_key(self, actor_name, asset_file):
+        asset_stem = os.path.splitext(os.path.basename(asset_file))[0]
+        if (actor_name in self._object_color_overrides):
+            return actor_name
+        if (asset_stem in self._object_color_overrides):
+            return asset_stem
+        return None
+
+    def _get_color_override(self, actor_name, asset_file):
+        override_key = self._get_override_key(actor_name, asset_file)
+        if (override_key is None):
+            return None
+        color = self._object_color_overrides[override_key]
+        return np.array(color, dtype=np.float32)
+
     def get_obj_type(self, obj_id):
         return self._obj_types[0][obj_id]
     

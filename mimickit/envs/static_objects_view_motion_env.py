@@ -1,6 +1,7 @@
 import envs.view_motion_env as view_motion_env   # adjust name if different
 import engines.engine as engine
 import numpy as np
+import os
 
 class StaticObjectsViewMotionEnv(view_motion_env.ViewMotionEnv):
     def __init__(self, env_config, engine_config, num_envs, device, visualize):
@@ -25,7 +26,11 @@ class StaticObjectsViewMotionEnv(view_motion_env.ViewMotionEnv):
             pos = np.array(obj_config["pos"], dtype=np.float32)
             rot = np.array(obj_config.get("rot", [0.0, 0.0, 0.0, 1.0]), dtype=np.float32)
 
-            obj_name = f"static_object{i}"
+            obj_name = obj_config.get("name")
+            if obj_name is None:
+                obj_name = os.path.splitext(os.path.basename(asset_file))[0]
+                if obj_name == "":
+                    obj_name = f"static_object{i}"
             self._engine.create_obj(
                 env_id=env_id,
                 obj_type=engine.ObjType.rigid,

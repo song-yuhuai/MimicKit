@@ -9,6 +9,11 @@ root_height_obs: True
 
 key_bodies: ["left_ankle_roll_link", "right_ankle_roll_link", "head_link","left_wrist_yaw_link", "right_wrist_yaw_link"]
 
-objects: [{"pos":[0.67, 0.3, 0.08], "file":"data/assets/objects/chassis_box.xml"}, {"pos":[0.67, 0.3, 0.001], "file":"data/assets/objects/chassis_box_top_layer.xml"}]
+objects: [{"pos":[0.67, 0.3, 0.08], "file":"data/assets/objects/chassis_box.xml"}, {"pos":[0.67, 0.3, 0.161], "file":"data/assets/objects/chassis_box_top_layer.xml"}]
 
 motion_file: "data/motions/g1/g1_stepper_cut_hold_interp_mimickit.pkl"
+
+engine:
+  debug_object_colors: true
+  object_color_overrides:
+    chassis_box_top_layer: [1.0, 0.0, 0.0]
