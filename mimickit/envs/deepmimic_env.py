@@ -123,6 +123,11 @@ class DeepMimicEnv(char_env.CharEnv):
 
         joint_err_w = env_config.get("joint_err_w", None)
         self._parse_joint_err_weights(joint_err_w)
+        char_id = self._get_char_id()
+        names = self._kin_char_model.get_body_names()  # same order as sim bodies
+        for name in ["left_ankle_pitch_link","left_ankle_roll_link", "right_ankle_pitch_link", "right_ankle_roll_link"]:
+            b = self._engine.find_obj_body_id(char_id, name)
+            print(f"{name}: body_id={b}, joint_err_w_index={b-1}, kin_name_at_id={names[b]}")
         return
 
     def _load_motions(self, motion_file):
