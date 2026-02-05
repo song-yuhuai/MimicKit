@@ -1,2 +1,6 @@
 *
 !.gitignore
+
+# track x2 assets
+!x2/
+!x2/**

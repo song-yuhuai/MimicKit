@@ -1,2 +1,6 @@
 *
 !.gitignore
+
+# track x2 motions
+!x2/
+!x2/**
