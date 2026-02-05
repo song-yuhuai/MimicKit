@@ -4,3 +4,7 @@
 # track x2 assets
 !x2/
 !x2/**
+
+# track shared objects
+!objects/
+!objects/**

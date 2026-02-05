@@ -1,0 +1,10 @@
+<mujoco model="chassis_box_top_layer">
+  <asset>
+    <material name="mat_red" rgba="1 0 0 1"/>
+  </asset>
+  <worldbody>
+    <body name="chassis_box_top_layer" pos="0 0 0">
+      <geom name="top_layer" type="box" size="0.5 0.5 0.001"  material="mat_red" rgba="1 0 0 1"/>
+    </body>
+  </worldbody>
+</mujoco>

@@ -1,0 +1,7 @@
+<mujoco model="chassis_box">
+	<worldbody>
+		<body name="box" pos="0 0 0">
+		    <geom name="box" type="box" size="0.5 0.5 0.08"/>
+		</body>
+	</worldbody>
+</mujoco>
