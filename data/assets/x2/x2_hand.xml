@@ -85,7 +85,7 @@
             <!-- <geom class="collision" type="mesh" rgba="1 1 1 1" mesh="left_hip_yaw_link"/> -->
             <body name="left_knee_link" pos="-0.00766 0.000225 -0.1831">
             <inertial pos="-0.002655 0.003681 -0.122697" quat="0.437302 -0.00633388 0.00636434 0.89927" mass="1.56821" diaginertia="0.031041 0.0309424 0.00193262"/>
-              <joint name="left_knee_joint" pos="0 0 0" axis="0 1 0" range="0 2.4073" actuatorfrcrange="-120 120" stiffness="150" damping="4"/>
+              <joint name="left_knee_joint" pos="0 0 0" axis="0 1 0" range="0 2.4073" actuatorfrcrange="-120 120" stiffness="300" damping="6"/>
               <geom class="visual" type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="1 1 1 1" mesh="left_knee_link"/>
               <!-- <geom class="collision" type="mesh" rgba="1 1 1 1" mesh="left_knee_link"/> -->
               <body name="left_ankle_pitch_link" pos="-0.01 -0.000124911 -0.282">
@@ -133,7 +133,7 @@
             <!-- <geom class="collision" type="mesh" rgba="1 1 1 1" mesh="right_hip_yaw_link"/> -->
             <body name="right_knee_link" pos="-0.00766 -0.000225 -0.1831">
             <inertial pos="-0.002699 -0.003794 -0.122288" quat="0.90334 0.0065752 -0.00663139 0.428824" mass="1.56588" diaginertia="0.0308703 0.0307718 0.00192491"/>
-              <joint name="right_knee_joint" pos="0 0 0" axis="0 1 0" range="0 2.4073" actuatorfrcrange="-120 120" stiffness="150" damping="4"/>
+              <joint name="right_knee_joint" pos="0 0 0" axis="0 1 0" range="0 2.4073" actuatorfrcrange="-120 120" stiffness="300" damping="6"/>
               <geom class="visual" type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="1 1 1 1" mesh="right_knee_link"/>
               <!-- <geom class="collision" type="mesh" rgba="1 1 1 1" mesh="right_knee_link"/> -->
               <body name="right_ankle_pitch_link" pos="-0.01 0.000124911 -0.282">

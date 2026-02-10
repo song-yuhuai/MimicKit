@@ -38,7 +38,7 @@ foot_lift_termination:
   log_interval: 100
 
 motion_file: "data/motions/x2/step_circle_mimickit.pkl"
-objects: [{"pos":[0.72, -0.3, 0.08], "file":"data/assets/objects/chassis_box.xml"}]
+objects: [{"pos":[-0.72, -0.3, 0.08], "file":"data/assets/objects/chassis_box.xml"}]
 
 
 reward_pose_w: 0.5

@@ -9,9 +9,9 @@ root_height_obs: True
 
 key_bodies: ["left_ankle_roll_link", "right_ankle_roll_link"]
 
-objects: [{"pos":[-0.72, -0.3, 0.08], "file":"data/assets/objects/chassis_box.xml"}]
+objects: [{"pos":[-0.77, -0.3, 0.08], "file":"data/assets/objects/chassis_box.xml"}]
 
-motion_file: "data/motions/x2/step_circle_mimickit.pkl"
+motion_file: "data/motions/x2/step_low_close_mimickit.pkl"
 
 engine:
   debug_object_colors: false
