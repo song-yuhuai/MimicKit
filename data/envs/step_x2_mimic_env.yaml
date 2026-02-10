@@ -6,7 +6,7 @@ camera_mode: "track"
 episode_length: 10.0 # seconds
 global_obs: True
 root_height_obs: True
-pose_termination: False
+pose_termination: True
 pose_termination_dist: 0.5 # m
 enable_phase_obs: False
 enable_tar_obs: True
@@ -37,11 +37,11 @@ foot_lift_termination:
   apply_in_test: False
   log_interval: 100
 
-motion_file: "data/motions/x2/x2_walk_and_step_mimickit.pkl"
-objects: [{"pos":[-0.6, 0.5, 0.08], "file":"data/assets/objects/chassis_box.xml"}]
+motion_file: "data/motions/x2/step_low_far_mimickit.pkl"
+objects: [{"pos":[0.9, -0.3, 0.08], "file":"data/assets/objects/chassis_box.xml"}]
 
 
-reward_pose_w: 0.8
+reward_pose_w: 0.5
 reward_vel_w: 0.1
 reward_root_pose_w: 0.15
 reward_root_vel_w: 0.1
